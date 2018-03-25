@@ -1,0 +1,6 @@
+package: github.com/vastness-io/vastctl
+import:
+- package: github.com/urfave/cli
+  version: ^1.20.0
+- package: google.golang.org/grpc
+  version: ^1.10.0
