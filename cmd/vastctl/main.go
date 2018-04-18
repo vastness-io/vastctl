@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"os"
 	"github.com/vastness-io/vastctl/cmd"
+	"os"
 )
 
 const (
