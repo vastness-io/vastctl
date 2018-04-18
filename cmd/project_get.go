@@ -1,4 +1,4 @@
-package get
+package cmd
 
 import (
 	"context"
@@ -38,8 +38,8 @@ func getProjects() func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 
 		var (
-			all     = ctx.Bool("all")
-			vcsType = ctx.String("type")
+			all     = ctx.Bool(AllFlag)
+			vcsType = ctx.String(TypeFlag)
 		)
 
 		if !all && vcsType == "" {
@@ -47,7 +47,7 @@ func getProjects() func(*cli.Context) error {
 		}
 
 		var (
-			address = ctx.GlobalString("coordinator")
+			address = ctx.GlobalString(CoordinatorFlagName)
 			tracer  = opentracing.GlobalTracer()
 		)
 
