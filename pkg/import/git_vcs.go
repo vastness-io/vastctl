@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"regexp"
 )
 
 type gitVcs struct {
@@ -102,6 +103,7 @@ func createPushCommit(sha, fileString string) *event.PushCommit {
 	const (
 		status = iota
 		name
+		renamedName
 	)
 
 	out := event.PushCommit{
@@ -164,18 +166,28 @@ func createPushCommit(sha, fileString string) *event.PushCommit {
 		}
 
 		for _, file := range commitInfoRaw[1:] {
-			if nameStatus := strings.Fields(file); len(nameStatus) == 2 {
-				switch nameStatus[status] {
 
-				case "A":
+			if nameStatus := strings.Fields(file); len(nameStatus) != 0 {
+
+
+				status := nameStatus[status]
+
+				renamedRegex := regexp.MustCompile(`^R.*$`)
+
+				switch  {
+
+				case status == "A":
 					out.Added = append(out.Added, nameStatus[name])
 
-				case "M":
+				case status == "M":
 					out.Modified = append(out.Modified, nameStatus[name])
 
-				case "D":
+				case renamedRegex.MatchString(status):
 					out.Removed = append(out.Removed, nameStatus[name])
+					out.Added = append(out.Added, nameStatus[renamedName])
 
+				case status == "D":
+					out.Removed = append(out.Removed, nameStatus[name])
 				}
 			}
 		}
