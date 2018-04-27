@@ -49,6 +49,12 @@ var BaseCommands = []cli.Command{
 				Usage:       "Imports a github project",
 				Description: "Imports a github project to Vastness",
 				ArgsUsage:   "REMOTE_URL BRANCH",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  CreateFlagName(FileFlag, FileShortFlag),
+						Usage: FileFlagUsage,
+					},
+				},
 			},
 			{
 				Name:        "bitbucket-server",
@@ -56,6 +62,12 @@ var BaseCommands = []cli.Command{
 				Usage:       "Imports a bitbucket server project",
 				Description: "Imports a bitbucket server project to Vastness",
 				ArgsUsage:   "REMOTE_URL BRANCH",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  CreateFlagName(FileFlag, FileShortFlag),
+						Usage: FileFlagUsage,
+					},
+				},
 			},
 		},
 	},

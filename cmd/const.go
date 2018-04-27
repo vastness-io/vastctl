@@ -8,4 +8,7 @@ const (
 	BaseCommandDescribe = "describe"
 	CoordinatorFlagName = "coordinator"
 	TimeOut             = 10 * time.Second
+	FileFlag            = "file"
+	FileShortFlag       = "f"
+	FileFlagUsage       = "Reads a list of projects from a file"
 )

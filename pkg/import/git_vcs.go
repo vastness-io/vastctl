@@ -6,9 +6,9 @@ import (
 	"github.com/vastness-io/vastctl/pkg/shared"
 	event "github.com/vastness-io/vcs-webhook-svc/webhook"
 	"os"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 )
 
 type gitVcs struct {
@@ -169,12 +169,11 @@ func createPushCommit(sha, fileString string) *event.PushCommit {
 
 			if nameStatus := strings.Fields(file); len(nameStatus) != 0 {
 
-
 				status := nameStatus[status]
 
-				renamedRegex := regexp.MustCompile(`^R.*$`)
+				renamedRegex := regexp.MustCompile(`^R[0-9]+$`)
 
-				switch  {
+				switch {
 
 				case status == "A":
 					out.Added = append(out.Added, nameStatus[name])
@@ -185,8 +184,7 @@ func createPushCommit(sha, fileString string) *event.PushCommit {
 				case renamedRegex.MatchString(status):
 					out.Removed = append(out.Removed, nameStatus[name])
 					out.Added = append(out.Added, nameStatus[renamedName])
-
-				case status == "D":
+				case status == "D" || status == "RM":
 					out.Removed = append(out.Removed, nameStatus[name])
 				}
 			}

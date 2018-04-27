@@ -20,7 +20,7 @@ func getProjects() func(*cli.Context) error {
 			tracer  = opentracing.GlobalTracer()
 		)
 
-		clientConn, err := toolkit.NewGRPCClient(tracer, nil, grpc.WithInsecure())(address)
+		clientConn, err := toolkit.NewGRPCClient(tracer, nil, grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(-1)))(address)
 
 		if err != nil {
 			return err
