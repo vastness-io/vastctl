@@ -11,15 +11,17 @@ import (
 	webhook "github.com/vastness-io/vcs-webhook-svc/webhook"
 	"google.golang.org/grpc"
 	"strings"
+	"sync"
 )
 
 func GitAction(vcsType string) cli.ActionFunc {
 	return func(ctx *cli.Context) error {
 
 		var (
-			tracer      = opentracing.GlobalTracer()
-			coordinator = ctx.GlobalString(CoordinatorFlagName)
-			useFile     = ctx.String(FileFlag)
+			tracer               = opentracing.GlobalTracer()
+			coordinator          = ctx.GlobalString(CoordinatorFlagName)
+			useFile              = ctx.String(FileFlag)
+			maxConcurrentImports = ctx.Int(MaxConcurrentFlag)
 		)
 
 		var (
@@ -37,54 +39,96 @@ func GitAction(vcsType string) cli.ActionFunc {
 			return err
 		}
 
+		return BatchProcess(importProjects, maxConcurrentImports, vcsType, coordinator, tracer)
+
+	}
+}
+func BatchProcess(importProjects []*importing.ImportProjectInfo, maxConcurrent int, vcsType, coordinatorAddr string, tracer opentracing.Tracer) error {
+	var (
+		chunkedProjects = ChunkImportProjects(importProjects, maxConcurrent)
+		wg              sync.WaitGroup
+		errCh           = make(chan error, maxConcurrent)
+		aggregatedError = &AggregatedError{}
+	)
+
+	for _, group := range chunkedProjects {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ImportBatch(group, vcsType, coordinatorAddr, tracer, errCh)
+		}()
+		wg.Wait()
+	}
+
+	for range chunkedProjects {
+		aggregatedError.Add(<-errCh)
+	}
+
+	return aggregatedError.ToError()
+}
+
+func ImportBatch(batch []*importing.ImportProjectInfo, vcsType, coordinatorAddr string, tracer opentracing.Tracer, errCh chan<- error) {
+
+	var (
+		tmpErrCh = make(chan error)
+
+		wg sync.WaitGroup
+	)
+
+	go func() {
 		aggregatedError := &AggregatedError{}
 
-		for _, project := range importProjects {
-			err := func() error {
-
-				s := NewSpinner(fmt.Sprintf("importing %s", project.RemoteURL), "")
-
-				s.Start()
-
-				defer s.Stop()
-
-				repoImporter, err := importing.NewVcs(project.RemoteURL, project.RemoteURL)
-
-				if err != nil {
-					return err
-				}
-
-				event, err := repoImporter.MapToPushEvent(vcsType)
-
-				if err != nil {
-					return err
-				}
-
-				coordinatorConn, err := toolkit.NewGRPCClient(tracer, nil, grpc.WithInsecure())(coordinator)
-
-				if err != nil {
-					return err
-				}
-
-				defer coordinatorConn.Close()
-
-				cc := webhook.NewVcsEventClient(coordinatorConn)
-
-				httpCtx, cancelFunc := context.WithTimeout(context.Background(), TimeOut)
-
-				defer cancelFunc()
-
-				_, err = cc.OnPush(httpCtx, event)
-
-				return err
-			}()
-
+		for err := range tmpErrCh {
 			aggregatedError.Add(err)
-
 		}
+		errCh <- aggregatedError.ToError()
+	}()
 
-		return aggregatedError.ToError()
+	for _, project := range batch {
+		wg.Add(1)
+		go func(prj *importing.ImportProjectInfo) {
+			defer wg.Done()
+			fmt.Printf("importing %s\n", prj.RemoteURL)
+
+			repoImporter, err := importing.NewVcs(prj.RemoteURL, prj.Version)
+
+			if err != nil {
+				tmpErrCh <- err
+				return
+			}
+
+			event, err := repoImporter.MapToPushEvent(vcsType)
+
+			if err != nil {
+				tmpErrCh <- err
+				return
+			}
+
+			coordinatorConn, err := toolkit.NewGRPCClient(tracer, nil, grpc.WithInsecure(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)))(coordinatorAddr)
+
+			if err != nil {
+				tmpErrCh <- err
+				return
+			}
+
+			defer coordinatorConn.Close()
+
+			cc := webhook.NewVcsEventClient(coordinatorConn)
+
+			httpCtx, cancelFunc := context.WithTimeout(context.Background(), TimeOut)
+
+			defer cancelFunc()
+
+			_, err = cc.OnPush(httpCtx, event)
+
+			tmpErrCh <- err
+		}(project)
 	}
+
+	wg.Wait()
+
+	close(tmpErrCh)
+
 }
 
 func parseImportFile(file string) ([]*importing.ImportProjectInfo, error) {

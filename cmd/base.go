@@ -54,6 +54,10 @@ var BaseCommands = []cli.Command{
 						Name:  CreateFlagName(FileFlag, FileShortFlag),
 						Usage: FileFlagUsage,
 					},
+					cli.IntFlag{
+						Name:  CreateFlagName(MaxConcurrentFlag, MaxConcurrentShortFlag),
+						Value: 1,
+					},
 				},
 			},
 			{
@@ -66,6 +70,10 @@ var BaseCommands = []cli.Command{
 					cli.StringFlag{
 						Name:  CreateFlagName(FileFlag, FileShortFlag),
 						Usage: FileFlagUsage,
+					},
+					cli.IntFlag{
+						Name:  CreateFlagName(MaxConcurrentFlag, MaxConcurrentShortFlag),
+						Value: 1,
 					},
 				},
 			},

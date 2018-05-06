@@ -80,10 +80,21 @@ func NewSpinner(prefix, finalMsg string) *spinner.Spinner {
 
 }
 
-func Take(n int, projects []*importing.ImportProjectInfo) ([]*importing.ImportProjectInfo, []*importing.ImportProjectInfo) {
-	projectsLen := len(projects)
+func ChunkImportProjects(importProjects []*importing.ImportProjectInfo, n int) [][]*importing.ImportProjectInfo {
 
-	if n < projectsLen {
-		return append()
+	var groups [][]*importing.ImportProjectInfo
+
+	chunkSize := n
+
+	for i := 0; i < len(importProjects); i += chunkSize {
+		end := i + chunkSize
+
+		if end > len(importProjects) {
+			end = len(importProjects)
+		}
+
+		groups = append(groups, importProjects[i:end])
 	}
+
+	return groups
 }

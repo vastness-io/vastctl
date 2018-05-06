@@ -5,7 +5,6 @@ import (
 	"github.com/masterminds/vcs"
 	"github.com/vastness-io/vastctl/pkg/shared"
 	event "github.com/vastness-io/vcs-webhook-svc/webhook"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -17,11 +16,7 @@ type gitVcs struct {
 
 func (g *gitVcs) MapToPushEvent(vcsType string) (*event.VcsPushEvent, error) {
 
-	defer func() {
-		if rerr := os.RemoveAll(g.LocalPath()); rerr != nil {
-			fmt.Printf("failed to remove temp path: %s", g.LocalPath())
-		}
-	}()
+	defer CleanupTemporaryImportDir(g.LocalPath())
 
 	ev, err := WalkGitTree(g, vcsType)
 
