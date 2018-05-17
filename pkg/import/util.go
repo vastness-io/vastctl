@@ -1,8 +1,10 @@
 package importing
 
 import (
+	"fmt"
 	"github.com/vastness-io/vastctl/pkg/shared"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -26,4 +28,10 @@ func SplitVcsRemoteUrl(remoteURL string) (owner string, repository string, err e
 
 	return "", "", shared.InvalidVcsRemoteURL
 
+}
+
+func CleanupTemporaryImportDir(filePath string) {
+	if rerr := os.RemoveAll(filePath); rerr != nil {
+		fmt.Printf("failed to remove temp path: %s\n", filePath)
+	}
 }

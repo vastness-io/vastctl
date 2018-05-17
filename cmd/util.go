@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/briandowns/spinner"
 	"github.com/masterminds/vcs"
 	"github.com/urfave/cli"
 	"github.com/vastness-io/coordinator-svc/project"
+	"github.com/vastness-io/vastctl/pkg/import"
 	"github.com/vastness-io/vastctl/pkg/shared"
 	vcs2 "github.com/vastness-io/vcs-webhook-svc/webhook"
 	"google.golang.org/grpc/codes"
@@ -63,6 +65,10 @@ func MapVcsTypesToVcsMessage(vcsType string) (string, error) {
 	}
 }
 
+func CreateFlagName(full, short string) string {
+	return fmt.Sprintf("%s, %s", full, short)
+}
+
 func NewSpinner(prefix, finalMsg string) *spinner.Spinner {
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Prefix = prefix
@@ -72,4 +78,23 @@ func NewSpinner(prefix, finalMsg string) *spinner.Spinner {
 	}
 	return s
 
+}
+
+func ChunkImportProjects(importProjects []*importing.ImportProjectInfo, n int) [][]*importing.ImportProjectInfo {
+
+	var groups [][]*importing.ImportProjectInfo
+
+	chunkSize := n
+
+	for i := 0; i < len(importProjects); i += chunkSize {
+		end := i + chunkSize
+
+		if end > len(importProjects) {
+			end = len(importProjects)
+		}
+
+		groups = append(groups, importProjects[i:end])
+	}
+
+	return groups
 }
